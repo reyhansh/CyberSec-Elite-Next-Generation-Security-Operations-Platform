@@ -1,0 +1,492 @@
+import React, { useState, useEffect } from 'react';
+import { Shield, AlertTriangle, Activity, TrendingUp, Search, Filter, RefreshCw, CheckCircle, XCircle, Clock, Target, FileText, Wrench } from 'lucide-react';
+
+export default function ThreatIntelDashboard() {
+  const [threats, setThreats] = useState([]);
+  const [assets, setAssets] = useState([]);
+  const [patches, setPatches] = useState([]);
+  const [filter, setFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('threats');
+  const [selectedThreat, setSelectedThreat] = useState(null);
+
+  // Mock threat data
+  const mockThreats = [
+    {
+      id: 1,
+      name: 'CVE-2024-1234',
+      severity: 'critical',
+      type: 'vulnerability',
+      description: 'Remote code execution in web framework',
+      cve: 'CVE-2024-1234',
+      cvss: 9.8,
+      date: '2025-01-15',
+      affected: 'Apache Struts 2.x',
+      source: 'NVD',
+      mitigation: 'Upgrade to version 2.5.33 or apply security patch',
+      impact: 'Allows attackers to execute arbitrary code remotely',
+      exploitAvailable: true,
+      patchAvailable: true
+    },
+    {
+      id: 2,
+      name: 'Ransomware Campaign',
+      severity: 'high',
+      type: 'malware',
+      description: 'New ransomware targeting healthcare sector',
+      family: 'LockBit',
+      iocs: ['hash:abc123...', 'domain:malicious.com'],
+      date: '2025-01-14',
+      source: 'CISA',
+      mitigation: 'Block IOCs at firewall, enable endpoint detection',
+      impact: 'Data encryption and exfiltration',
+      exploitAvailable: false,
+      patchAvailable: false
+    },
+    {
+      id: 3,
+      name: 'Phishing Campaign',
+      severity: 'medium',
+      type: 'phishing',
+      description: 'Credential harvesting via fake login pages',
+      targets: 'Financial institutions',
+      date: '2025-01-13',
+      source: 'PhishTank',
+      mitigation: 'User awareness training, email filtering',
+      impact: 'Credential theft leading to unauthorized access',
+      exploitAvailable: false,
+      patchAvailable: false
+    },
+    {
+      id: 4,
+      name: 'Zero-Day Exploit',
+      severity: 'critical',
+      type: 'exploit',
+      description: 'Active exploitation of browser vulnerability',
+      cve: 'CVE-2025-0001',
+      cvss: 9.1,
+      date: '2025-01-16',
+      affected: 'Chrome < 121.0',
+      source: 'Google Project Zero',
+      mitigation: 'Update to Chrome 121.0 immediately',
+      impact: 'Browser compromise and potential system access',
+      exploitAvailable: true,
+      patchAvailable: true
+    },
+    {
+      id: 5,
+      name: 'APT Activity',
+      severity: 'high',
+      type: 'apt',
+      description: 'Advanced persistent threat targeting energy sector',
+      group: 'APT29',
+      tactics: 'Initial Access, Persistence',
+      date: '2025-01-12',
+      source: 'MITRE ATT&CK',
+      mitigation: 'Network segmentation, enhanced monitoring',
+      impact: 'Long-term unauthorized access to critical systems',
+      exploitAvailable: false,
+      patchAvailable: false
+    }
+  ];
+
+  // Mock asset inventory
+  const mockAssets = [
+    { id: 1, name: 'Web Server 01', ip: '10.0.1.100', os: 'Ubuntu 20.04', services: ['Apache 2.4.41', 'MySQL 8.0'], vulnerabilities: 3, status: 'vulnerable' },
+    { id: 2, name: 'Database Server', ip: '10.0.1.101', os: 'CentOS 8', services: ['PostgreSQL 12'], vulnerabilities: 1, status: 'vulnerable' },
+    { id: 3, name: 'Mail Server', ip: '10.0.1.102', os: 'Debian 11', services: ['Postfix 3.5'], vulnerabilities: 0, status: 'patched' },
+    { id: 4, name: 'File Server', ip: '10.0.1.103', os: 'Windows Server 2019', services: ['SMB', 'FTP'], vulnerabilities: 2, status: 'vulnerable' },
+    { id: 5, name: 'Workstation 01', ip: '10.0.2.50', os: 'Windows 11', services: ['Chrome 120.0'], vulnerabilities: 1, status: 'pending' }
+  ];
+
+  // Mock patch management
+  const mockPatches = [
+    { id: 1, cve: 'CVE-2024-1234', asset: 'Web Server 01', severity: 'critical', status: 'pending', dueDate: '2025-01-20', assignedTo: 'Security Team' },
+    { id: 2, cve: 'CVE-2025-0001', asset: 'Workstation 01', severity: 'critical', status: 'in-progress', dueDate: '2025-01-18', assignedTo: 'IT Support' },
+    { id: 3, cve: 'CVE-2024-5678', asset: 'Database Server', severity: 'high', status: 'pending', dueDate: '2025-01-25', assignedTo: 'DBA Team' },
+    { id: 4, cve: 'CVE-2024-9999', asset: 'Mail Server', severity: 'medium', status: 'completed', dueDate: '2025-01-10', assignedTo: 'Security Team' },
+    { id: 5, cve: 'CVE-2024-7777', asset: 'File Server', severity: 'high', status: 'pending', dueDate: '2025-01-22', assignedTo: 'Security Team' }
+  ];
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = () => {
+    setLoading(true);
+    setTimeout(() => {
+      setThreats(mockThreats);
+      setAssets(mockAssets);
+      setPatches(mockPatches);
+      setLoading(false);
+    }, 800);
+  };
+
+  const getSeverityColor = (severity) => {
+    switch(severity) {
+      case 'critical': return 'bg-red-500';
+      case 'high': return 'bg-orange-500';
+      case 'medium': return 'bg-yellow-500';
+      case 'low': return 'bg-blue-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  const getTypeIcon = (type) => {
+    switch(type) {
+      case 'vulnerability': return '🔓';
+      case 'malware': return '🦠';
+      case 'phishing': return '🎣';
+      case 'exploit': return '💥';
+      case 'apt': return '🎯';
+      default: return '⚠️';
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch(status) {
+      case 'vulnerable': return 'text-red-500';
+      case 'pending': return 'text-yellow-500';
+      case 'patched': return 'text-green-500';
+      case 'in-progress': return 'text-blue-500';
+      case 'completed': return 'text-green-500';
+      default: return 'text-gray-500';
+    }
+  };
+
+  const filteredThreats = threats
+    .filter(t => filter === 'all' || t.severity === filter)
+    .filter(t => t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                 t.description.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  const stats = {
+    total: threats.length,
+    critical: threats.filter(t => t.severity === 'critical').length,
+    high: threats.filter(t => t.severity === 'high').length,
+    vulnerableAssets: assets.filter(a => a.status === 'vulnerable').length,
+    pendingPatches: patches.filter(p => p.status === 'pending').length
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <Shield className="w-10 h-10 text-cyan-400" />
+            <div>
+              <h1 className="text-3xl font-bold">MalwareWorld</h1>
+              <p className="text-slate-400">Defensive Security Operations Center</p>
+            </div>
+          </div>
+          <button 
+            onClick={loadData}
+            className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+          <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-400 text-sm">Total Threats</p>
+                <p className="text-2xl font-bold">{stats.total}</p>
+              </div>
+              <Activity className="w-8 h-8 text-cyan-400" />
+            </div>
+          </div>
+          <div className="bg-slate-800 border border-red-900/50 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-400 text-sm">Critical</p>
+                <p className="text-2xl font-bold text-red-500">{stats.critical}</p>
+              </div>
+              <AlertTriangle className="w-8 h-8 text-red-500" />
+            </div>
+          </div>
+          <div className="bg-slate-800 border border-orange-900/50 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-400 text-sm">High</p>
+                <p className="text-2xl font-bold text-orange-500">{stats.high}</p>
+              </div>
+              <TrendingUp className="w-8 h-8 text-orange-500" />
+            </div>
+          </div>
+          <div className="bg-slate-800 border border-red-900/50 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-400 text-sm">Vulnerable Assets</p>
+                <p className="text-2xl font-bold text-red-500">{stats.vulnerableAssets}</p>
+              </div>
+              <Target className="w-8 h-8 text-red-500" />
+            </div>
+          </div>
+          <div className="bg-slate-800 border border-yellow-900/50 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-400 text-sm">Pending Patches</p>
+                <p className="text-2xl font-bold text-yellow-500">{stats.pendingPatches}</p>
+              </div>
+              <Clock className="w-8 h-8 text-yellow-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 border-b border-slate-700">
+          {['threats', 'assessment', 'patches', 'mitigation'].map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-6 py-3 font-semibold capitalize transition-colors ${
+                activeTab === tab 
+                  ? 'text-cyan-400 border-b-2 border-cyan-400' 
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {tab === 'assessment' ? 'Vulnerability Assessment' : tab}
+            </button>
+          ))}
+        </div>
+
+        {/* Threats Tab */}
+        {activeTab === 'threats' && (
+          <>
+            <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 mb-6">
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search threats..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  {['all', 'critical', 'high', 'medium', 'low'].map(severity => (
+                    <button
+                      key={severity}
+                      onClick={() => setFilter(severity)}
+                      className={`px-4 py-2 rounded-lg transition-colors capitalize ${
+                        filter === severity 
+                          ? 'bg-cyan-600 text-white' 
+                          : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      }`}
+                    >
+                      {severity}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {filteredThreats.map(threat => (
+                <div key={threat.id} className="bg-slate-800 border border-slate-700 rounded-lg p-5 hover:border-cyan-500/50 transition-colors">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-start gap-3 flex-1">
+                      <span className="text-2xl">{getTypeIcon(threat.type)}</span>
+                      <div className="flex-1">
+                        <h3 className="text-xl font-semibold">{threat.name}</h3>
+                        <p className="text-slate-400 mt-1">{threat.description}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${getSeverityColor(threat.severity)}`}>
+                        {threat.severity.toUpperCase()}
+                      </span>
+                      <button
+                        onClick={() => setSelectedThreat(selectedThreat?.id === threat.id ? null : threat)}
+                        className="px-3 py-1 bg-cyan-600 hover:bg-cyan-700 rounded text-xs transition-colors"
+                      >
+                        {selectedThreat?.id === threat.id ? 'Hide Details' : 'View Details'}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {selectedThreat?.id === threat.id && (
+                    <div className="mt-4 p-4 bg-slate-900 rounded-lg border border-slate-600">
+                      <h4 className="font-semibold text-cyan-400 mb-3">Detailed Analysis & Mitigation</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="text-slate-400 mb-1">Impact Assessment:</p>
+                          <p className="text-white">{threat.impact}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-400 mb-1">Mitigation Strategy:</p>
+                          <p className="text-green-400">{threat.mitigation}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-400 mb-1">Patch Available:</p>
+                          <p className={threat.patchAvailable ? 'text-green-400' : 'text-red-400'}>
+                            {threat.patchAvailable ? '✓ Yes' : '✗ No'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-slate-400 mb-1">Active Exploitation:</p>
+                          <p className={threat.exploitAvailable ? 'text-red-400' : 'text-green-400'}>
+                            {threat.exploitAvailable ? '⚠ Confirmed' : '✓ None Detected'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 text-sm">
+                    <div>
+                      <span className="text-slate-500">Source:</span>
+                      <span className="ml-2 text-cyan-400">{threat.source}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Type:</span>
+                      <span className="ml-2 capitalize">{threat.type}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Date:</span>
+                      <span className="ml-2">{threat.date}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Vulnerability Assessment Tab */}
+        {activeTab === 'assessment' && (
+          <div className="space-y-4">
+            <div className="bg-slate-800 border border-slate-700 rounded-lg p-5">
+              <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <Target className="w-6 h-6 text-cyan-400" />
+                Asset Inventory & Vulnerability Status
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-700">
+                      <th className="text-left py-3 px-4">Asset Name</th>
+                      <th className="text-left py-3 px-4">IP Address</th>
+                      <th className="text-left py-3 px-4">Operating System</th>
+                      <th className="text-left py-3 px-4">Services</th>
+                      <th className="text-left py-3 px-4">Vulnerabilities</th>
+                      <th className="text-left py-3 px-4">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {assets.map(asset => (
+                      <tr key={asset.id} className="border-b border-slate-700/50 hover:bg-slate-700/30">
+                        <td className="py-3 px-4 font-semibold">{asset.name}</td>
+                        <td className="py-3 px-4 font-mono text-sm">{asset.ip}</td>
+                        <td className="py-3 px-4">{asset.os}</td>
+                        <td className="py-3 px-4 text-sm">{asset.services.join(', ')}</td>
+                        <td className="py-3 px-4">
+                          <span className={`font-bold ${asset.vulnerabilities > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                            {asset.vulnerabilities}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`capitalize font-semibold ${getStatusColor(asset.status)}`}>
+                            {asset.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Patch Management Tab */}
+        {activeTab === 'patches' && (
+          <div className="space-y-4">
+            <div className="bg-slate-800 border border-slate-700 rounded-lg p-5">
+              <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <Wrench className="w-6 h-6 text-cyan-400" />
+                Patch Management & Remediation Tracker
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-700">
+                      <th className="text-left py-3 px-4">CVE ID</th>
+                      <th className="text-left py-3 px-4">Affected Asset</th>
+                      <th className="text-left py-3 px-4">Severity</th>
+                      <th className="text-left py-3 px-4">Status</th>
+                      <th className="text-left py-3 px-4">Due Date</th>
+                      <th className="text-left py-3 px-4">Assigned To</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {patches.map(patch => (
+                      <tr key={patch.id} className="border-b border-slate-700/50 hover:bg-slate-700/30">
+                        <td className="py-3 px-4 font-mono text-sm text-cyan-400">{patch.cve}</td>
+                        <td className="py-3 px-4">{patch.asset}</td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-1 rounded text-xs font-bold ${getSeverityColor(patch.severity)}`}>
+                            {patch.severity.toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`capitalize font-semibold ${getStatusColor(patch.status)}`}>
+                            {patch.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">{patch.dueDate}</td>
+                        <td className="py-3 px-4 text-slate-300">{patch.assignedTo}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Mitigation Tab */}
+        {activeTab === 'mitigation' && (
+          <div className="space-y-4">
+            <div className="bg-slate-800 border border-slate-700 rounded-lg p-5">
+              <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <FileText className="w-6 h-6 text-cyan-400" />
+                Recommended Mitigation Strategies
+              </h3>
+              <div className="space-y-4">
+                {threats.filter(t => t.severity === 'critical' || t.severity === 'high').map(threat => (
+                  <div key={threat.id} className="p-4 bg-slate-900 rounded-lg border border-slate-600">
+                    <div className="flex items-start justify-between mb-2">
+                      <h4 className="font-semibold text-lg">{threat.name}</h4>
+                      <span className={`px-2 py-1 rounded text-xs font-bold ${getSeverityColor(threat.severity)}`}>
+                        {threat.severity.toUpperCase()}
+                      </span>
+                    </div>
+                    <p className="text-slate-400 text-sm mb-3">{threat.description}</p>
+                    <div className="bg-green-900/20 border border-green-700/50 rounded p-3">
+                      <p className="text-green-400 font-semibold text-sm mb-1">Recommended Action:</p>
+                      <p className="text-green-300 text-sm">{threat.mitigation}</p>
+                    </div>
+                    {threat.impact && (
+                      <div className="bg-red-900/20 border border-red-700/50 rounded p-3 mt-2">
+                        <p className="text-red-400 font-semibold text-sm mb-1">Risk if Unmitigated:</p>
+                        <p className="text-red-300 text-sm">{threat.impact}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
